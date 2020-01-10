@@ -1,5 +1,7 @@
 package org.bredkowiak.mongorest.location;
 
+import org.bredkowiak.mongorest.category.Category;
+import org.bredkowiak.mongorest.category.MainCategory;
 import org.bredkowiak.mongorest.exception.NotFoundException;
 import org.bredkowiak.mongorest.exception.ObjectValidationException;
 import org.bredkowiak.mongorest.validator.LocationValidator;
@@ -10,7 +12,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
+import java.util.HashSet;
 import java.util.List;
 
 @RestController
@@ -33,6 +35,20 @@ public class LocationController {
     public LocationController(LocationService locationService) {
         this.locationService = locationService;
     }
+
+//    @GetMapping("/test")
+//    public void test(){
+//        Location location = new Location();
+//        location.setLatitude(50d);
+//        location.setLongitude(50d);
+//        location.setName("test5555");
+//
+//        Category category = new Category();
+//        category.setMainCategory(MainCategory.SKATEBOARD);
+//        category.setSubCategories(new HashSet<>(SubCatSkateboard.GAP));
+//
+//        locationService.create()
+//    }
 
     @GetMapping("/{locationId}")
     public ResponseEntity<Location> getOneLocation(@PathVariable("locationId") String id) throws NotFoundException {
