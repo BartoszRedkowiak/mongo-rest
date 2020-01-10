@@ -45,23 +45,11 @@ public class LocationController {
                                        @RequestParam(name = "lat") Double lat,
                                        @RequestParam(name = "lng") Double lng) throws IllegalArgumentException {
         //TODO add filtering by category later
-        validateParams(radius, lat, lng);
+        LocationValidator.validateQueryParams(radius, lat, lng);
         Criteria criteria = queryCriteriaBuilder(radius, lat, lng);
 
         List<Location> locations = locationService.findLocations(criteria);
         return ResponseEntity.status(200).body(locations);
-    }
-
-    private void validateParams(Integer radius, Double lat, Double lng) {
-        if (radius <= 0) {
-            throw new IllegalArgumentException("Radius parameter must be greater than 0");
-        }
-        if (lat <= -85 || lat >= 85) {
-            throw new IllegalArgumentException("Latitude param cannot be outside -85 to 85 degree range");
-        }
-        if (lng <= -180 || lng >= 180) {
-            throw new IllegalArgumentException("Longitude param cannot be outside -180 to 180 degree range");
-        }
     }
 
     private Criteria queryCriteriaBuilder(Integer radius, Double lat, Double lng) {

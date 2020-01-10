@@ -27,6 +27,31 @@ public class LocationValidator {
         testLocationAttributes(location);
     }
 
+    public static void validateQueryParams(Integer radius, Double lat, Double lng) throws IllegalArgumentException {
+        int exceptions = 0;
+        StringBuilder message = new StringBuilder();
+        message.append("Invalid params:");
+
+        if (radius <= 0) {
+            exceptions++;
+            message.append(" (").append(exceptions).append(") ")
+                    .append("Radius parameter must be greater than 0");
+        }
+        if (lat <= -85 || lat >= 85) {
+            exceptions++;
+            message.append(" (").append(exceptions).append(") ")
+                    .append("Latitude param cannot be outside -85 to 85 degree range");
+        }
+        if (lng <= -180 || lng >= 180) {
+            exceptions++;
+            message.append(" (").append(exceptions).append(") ")
+                    .append("Longitude param cannot be outside -180 to 180 degree range");
+        }
+        if (exceptions > 0){
+            throw new IllegalArgumentException(message.toString());
+        }
+    }
+
 
     private static void testLocationAttributes(Location location) throws  ObjectValidationException{
         Double lat = location.getLatitude();
