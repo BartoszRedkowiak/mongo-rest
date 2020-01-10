@@ -35,11 +35,11 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
         return buildResponseEntity(apiError);
     }
 
-    @ExceptionHandler(EmptyResultDataAccessException.class)
+    @ExceptionHandler(IllegalArgumentException.class)
     protected ResponseEntity<Object> handleDeleteEntityException(
-            EmptyResultDataAccessException ex) {
-        ApiError apiError = new ApiError(HttpStatus.NOT_FOUND);
-        apiError.setMessage("No entity with provided id exists!");
+            IllegalArgumentException ex) {
+        ApiError apiError = new ApiError(HttpStatus.BAD_REQUEST);
+        apiError.setMessage(ex.getMessage());
         return buildResponseEntity(apiError);
     }
 

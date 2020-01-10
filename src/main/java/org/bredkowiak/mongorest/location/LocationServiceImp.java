@@ -3,12 +3,15 @@ package org.bredkowiak.mongorest.location;
 import org.bredkowiak.mongorest.exception.NotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@Transactional
 public class LocationServiceImp implements LocationService {
 
     private final LocationRepository locationRepository;
@@ -27,9 +30,8 @@ public class LocationServiceImp implements LocationService {
     }
 
     @Override
-    public List<Location> findLocations() {
-        //FIXME add filtering (category, distance)
-        List<Location> locations = locationRepository.findAll();
+    public List<Location> findLocations(Criteria criteria) {
+        List<Location> locations = locationRepository.findLocationsWithCriteria(criteria);
         return locations;
     }
 
@@ -61,8 +63,8 @@ public class LocationServiceImp implements LocationService {
 
     @Override
     public void delete(String id) throws NotFoundException {
-        Optional<Location> location = this.locationRepository.findById(id);
-        if (!location.isPresent()){
+        boolean test = locationRepository.existsById(id);
+        if (!test){
             throw new NotFoundException("No Location with given id present in database");
         }
         this.locationRepository.deleteById(id);
