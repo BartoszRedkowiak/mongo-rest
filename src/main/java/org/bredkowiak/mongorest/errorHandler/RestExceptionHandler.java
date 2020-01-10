@@ -1,9 +1,9 @@
 package org.bredkowiak.mongorest.errorHandler;
 
 import org.bredkowiak.mongorest.exception.NotFoundException;
+import org.bredkowiak.mongorest.exception.ObjectValidationException;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,6 +43,13 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
         return buildResponseEntity(apiError);
     }
 
+    @ExceptionHandler(ObjectValidationException.class)
+    protected ResponseEntity<Object> handleDeleteEntityException(
+            ObjectValidationException ex) {
+        ApiError apiError = new ApiError(HttpStatus.BAD_REQUEST);
+        apiError.setMessage(ex.getMessage());
+        return buildResponseEntity(apiError);
+    }
 
 
 }

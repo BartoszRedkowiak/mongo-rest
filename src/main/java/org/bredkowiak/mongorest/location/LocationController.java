@@ -1,6 +1,8 @@
 package org.bredkowiak.mongorest.location;
 
 import org.bredkowiak.mongorest.exception.NotFoundException;
+import org.bredkowiak.mongorest.exception.ObjectValidationException;
+import org.bredkowiak.mongorest.validator.LocationValidator;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -8,6 +10,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -38,10 +41,10 @@ public class LocationController {
     }
 
     @GetMapping
-    public ResponseEntity getLocations(@RequestParam(name = "radius", required = false) Integer radius,
-                                       @RequestParam(name = "lat", required = false) Double lat,
-                                       @RequestParam(name = "lng", required = false) Double lng) throws IllegalArgumentException {
-        //FIXME change optional parameters to obligatory
+    public ResponseEntity getLocations(@RequestParam(name = "radius") Integer radius,
+                                       @RequestParam(name = "lat") Double lat,
+                                       @RequestParam(name = "lng") Double lng) throws IllegalArgumentException {
+        //TODO add filtering by category later
         validateParams(radius, lat, lng);
         Criteria criteria = queryCriteriaBuilder(radius, lat, lng);
 
@@ -49,32 +52,19 @@ public class LocationController {
         return ResponseEntity.status(200).body(locations);
     }
 
-    private void validateParams(Integer radius, Double lat, Double lng){
-        if (radius == null & lat == null & lng == null){
-            return;
+    private void validateParams(Integer radius, Double lat, Double lng) {
+        if (radius <= 0) {
+            throw new IllegalArgumentException("Radius parameter must be greater than 0");
         }
-        if (radius != null & radius <= 0 ){
-            throw new IllegalArgumentException("Radius parameter cannot be negative or equal to 0");
+        if (lat <= -85 || lat >= 85) {
+            throw new IllegalArgumentException("Latitude param cannot be outside -85 to 85 degree range");
         }
-        if (lat != null){
-            if (lng == null){
-                throw new IllegalArgumentException("Missing longitude parameter");
-            }
-            if (lat <= -85 || lat >= 85 ){
-                throw new IllegalArgumentException("Latitude param cannot be outside -85 to 85 degree range");
-            }
-        }
-        if (lng != null){
-            if (lat == null){
-                throw new IllegalArgumentException("Missing latitude parameter");
-            }
-            if (lng <= -180 || lng >= 180 ){
-                throw new IllegalArgumentException("Longitude param cannot be outside -180 to 180 degree range");
-            }
+        if (lng <= -180 || lng >= 180) {
+            throw new IllegalArgumentException("Longitude param cannot be outside -180 to 180 degree range");
         }
     }
 
-    private Criteria queryCriteriaBuilder(Integer radius, Double lat, Double lng){
+    private Criteria queryCriteriaBuilder(Integer radius, Double lat, Double lng) {
         Double distanceConverted = 360.0 / 40075 * Double.valueOf(radius);
         Double minLat = lat - distanceConverted;
         Double maxLat = lat + distanceConverted;
@@ -96,22 +86,21 @@ public class LocationController {
     }
 
     @PostMapping
-    public ResponseEntity addLocation(@RequestBody Location location){
-        //TODO handle exceptions
+    public ResponseEntity addLocation(@RequestBody Location location) throws ObjectValidationException {
+        LocationValidator.validateNewLocation(location);
         Location savedLocation = locationService.create(location);
         return ResponseEntity.status(200).body(savedLocation);
     }
 
     @PutMapping
-    public ResponseEntity updateLocation(@RequestBody Location location){
-        //TODO handle exceptions
+    public ResponseEntity updateLocation(@RequestBody Location location) throws ObjectValidationException {
+        LocationValidator.validateUpdatedLocation(location);
         locationService.update(location);
         return ResponseEntity.status(200).build();
     }
 
     @DeleteMapping("/{locationId}")
-    public ResponseEntity deleteLocation(@PathVariable("locationId") String id) throws NotFoundException{
-        //TODO handle exceptions
+    public ResponseEntity deleteLocation(@PathVariable("locationId") String id) throws NotFoundException {
         locationService.delete(id);
         return ResponseEntity.status(200).build();
     }
