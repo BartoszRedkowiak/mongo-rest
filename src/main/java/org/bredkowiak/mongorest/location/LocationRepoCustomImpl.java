@@ -5,9 +5,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Component
 public class LocationRepoCustomImpl implements LocationRepoCustom {
 
     private final MongoTemplate mongoTemplate;
@@ -19,6 +21,7 @@ public class LocationRepoCustomImpl implements LocationRepoCustom {
     @Override
     public List<Location> findLocationsWithCriteria(Criteria criteria) {
         Query query = new Query(criteria);
+
         List<Location> result = mongoTemplate.find(query, Location.class);
         return result;
     }

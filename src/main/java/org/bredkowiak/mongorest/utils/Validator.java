@@ -1,6 +1,5 @@
-package org.bredkowiak.mongorest.validator;
+package org.bredkowiak.mongorest.utils;
 
-import com.sun.org.apache.bcel.internal.generic.IF_ACMPEQ;
 import org.bredkowiak.mongorest.category.Category;
 import org.bredkowiak.mongorest.category.MainCategory;
 import org.bredkowiak.mongorest.category.SubCategory;
@@ -10,7 +9,7 @@ import org.bredkowiak.mongorest.location.Location;
 import java.util.Collections;
 import java.util.EnumSet;
 
-public class LocationValidator {
+public class Validator {
 
     private static final Double MAX_LAT = 85d;
     private static final Double MIN_LAT = -85d;
@@ -92,6 +91,7 @@ public class LocationValidator {
         }
     }
 
+
     private static void testCategoryAttributes(Category category) {
         EnumSet<SubCategory> subCategories = category.getSubCategories();
         MainCategory mainCategory = category.getMainCategory();
@@ -106,6 +106,16 @@ public class LocationValidator {
         }
         if (mainCategory.equals(MainCategory.LONGBOARD) && test) {
             throw new IllegalArgumentException("One of subcategories elements doesn't belong to main category");
+        }
+    }
+
+
+    public static void paginationTest(Integer page, Integer size) throws IllegalArgumentException {
+        if (page == null || size == null){
+            throw new IllegalArgumentException("Missing page parameter(s)");
+        }
+        if (page < 0 || size <= 0){
+            throw new IllegalArgumentException("Improper pagination parameters");
         }
     }
 

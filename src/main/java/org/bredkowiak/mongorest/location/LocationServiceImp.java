@@ -1,5 +1,6 @@
 package org.bredkowiak.mongorest.location;
 
+import com.querydsl.core.types.dsl.BooleanExpression;
 import org.bredkowiak.mongorest.exception.NotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,6 +15,7 @@ import java.util.Optional;
 @Transactional
 public class LocationServiceImp implements LocationService {
 
+    private final String NOT_FOUND_MESSAGE = "No location with given id present in database";
     private final LocationRepository locationRepository;
 
     public LocationServiceImp(LocationRepository locationRepository) {
@@ -24,7 +26,7 @@ public class LocationServiceImp implements LocationService {
     public Location findOne(String id) throws NotFoundException {
         Optional<Location> location = this.locationRepository.findById(id);
         if (!location.isPresent()){
-            throw new NotFoundException("No Location with given id present in database");
+            throw new NotFoundException(NOT_FOUND_MESSAGE);
         }
         return location.get();
     }
@@ -41,7 +43,7 @@ public class LocationServiceImp implements LocationService {
         //TODO add sorting of some kind
         Page<Location> locations = locationRepository.findAll(pageable);
         if (!locations.hasContent()){
-            throw new NotFoundException("Cannot generate more pages");
+            throw new NotFoundException("Cannot generate page with provided query criteria");
         }
         return locations;
     }
@@ -65,7 +67,7 @@ public class LocationServiceImp implements LocationService {
     public void delete(String id) throws NotFoundException {
         boolean test = locationRepository.existsById(id);
         if (!test){
-            throw new NotFoundException("No Location with given id present in database");
+            throw new NotFoundException(NOT_FOUND_MESSAGE);
         }
         this.locationRepository.deleteById(id);
     }
