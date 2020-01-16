@@ -3,7 +3,6 @@ package org.bredkowiak.mongorest.utils;
 import org.bredkowiak.mongorest.category.Category;
 import org.bredkowiak.mongorest.category.MainCategory;
 import org.bredkowiak.mongorest.category.SubCategory;
-import org.bredkowiak.mongorest.exception.ObjectValidationException;
 import org.bredkowiak.mongorest.location.Location;
 
 import java.util.Collections;
@@ -21,102 +20,85 @@ public class Validator {
             EnumSet.of(SubCategory.DANCING, SubCategory.CRUISING, SubCategory.FREESTYLE, SubCategory.DOWNHILL);
 
 
-    public static void validateNewLocation(Location location) throws ObjectValidationException {
+    public static ValidationResult validateNewLocation(Location location){
+        ValidationResult result = new ValidationResult();
         if (location.getId() != null) {
-            throw new ObjectValidationException("Object cannot contain id parameter when creating new database entry");
+            result.addCause("Object cannot contain id parameter when creating new database entry");
         }
-        testLocationAttributes(location);
-        testCategoryAttributes(location.getCategories());
+        result = testLocationAttributes(location, result);
+        result = testCategoryAttributes(location.getCategories(), result);
+        return result;
     }
 
-    public static void validateUpdatedLocation(Location location) throws ObjectValidationException {
+    public static ValidationResult validateUpdatedLocation(Location location) {
+        ValidationResult result = new ValidationResult();
         if (location.getId().trim().length() != ID_LENGTH) {
-            throw new ObjectValidationException("Invalid length of id parameter");
+            result.addCause("Invalid length of id parameter");
         }
-        testLocationAttributes(location);
-        testCategoryAttributes(location.getCategories());
+        result = testLocationAttributes(location, result);
+        result = testCategoryAttributes(location.getCategories(), result);
+        return result;
     }
 
-    public static void validateQueryParams(Integer radius, Double lat, Double lng) throws IllegalArgumentException {
-        int exceptions = 0;
-        StringBuilder message = new StringBuilder();
-        message.append("Invalid params:");
-
+    public static ValidationResult validateQueryParams(Integer radius, Double lat, Double lng) {
+        ValidationResult result = new ValidationResult();
         if (radius <= 0) {
-            exceptions++;
-            message.append(" (").append(exceptions).append(") ")
-                    .append("Radius parameter must be greater than 0");
+            result.addCause("Radius parameter must be greater than 0");
         }
         if (lat <= -85 || lat >= 85) {
-            exceptions++;
-            message.append(" (").append(exceptions).append(") ")
-                    .append("Latitude param cannot be outside -85 to 85 degree range");
+            result.addCause("Latitude param cannot be outside -85 to 85 degree range");
         }
         if (lng <= -180 || lng >= 180) {
-            exceptions++;
-            message.append(" (").append(exceptions).append(") ")
-                    .append("Longitude param cannot be outside -180 to 180 degree range");
+            result.addCause("Longitude param cannot be outside -180 to 180 degree range");
         }
-        if (exceptions > 0) {
-            throw new IllegalArgumentException(message.toString());
-        }
+        return result;
     }
 
-
-    private static void testLocationAttributes(Location location) throws ObjectValidationException {
+    private static ValidationResult testLocationAttributes(Location location, ValidationResult result) {
         Double lat = location.getLatitude();
         Double lng = location.getLongitude();
         String name = location.getName().trim();
-        int exceptions = 0;
-        StringBuilder message = new StringBuilder();
-        message.append("Invalid params:");
 
         if (lat < MIN_LAT || lat > MAX_LAT) {
-            exceptions++;
-            message.append(" (").append(exceptions).append(") ")
-                    .append("Latitude param outside of" + MIN_LAT + " to " + MAX_LAT + " range");
+            result.addCause("Latitude param outside of" + MIN_LAT + " to " + MAX_LAT + " range");
         }
         if (lng < MIN_LNG || lng > MAX_LNG) {
-            exceptions++;
-            message.append(" (").append(exceptions).append(") ")
-                    .append("Longitude param outside of" + MIN_LNG + " to " + MAX_LNG + " range");
+            result.addCause("Longitude param outside of" + MIN_LNG + " to " + MAX_LNG + " range");
         }
         if (name == null || name.length() <= MIN_NAME_LENGTH) {
-            exceptions++;
-            message.append(" (").append(exceptions).append(") ")
-                    .append("Location name must have at least 5 characters");
+            result.addCause("Location name must have at least " + MIN_NAME_LENGTH + " characters");
         }
-        if (exceptions > 0) {
-            throw new ObjectValidationException(message.toString());
-        }
+        return result;
     }
 
-
-    private static void testCategoryAttributes(Category category) {
+    private static ValidationResult testCategoryAttributes(Category category, ValidationResult result) {
         EnumSet<SubCategory> subCategories = category.getSubCategories();
         MainCategory mainCategory = category.getMainCategory();
 
         if (mainCategory == null || subCategories == null || subCategories.isEmpty()) {
-            throw new IllegalArgumentException("Categories params cannot be empty");
+            result.addCause("Categories params cannot be empty");
         }
 
         boolean test = Collections.disjoint(subCategories, SUBCAT_LONGBOARD);
         if (mainCategory.equals(MainCategory.SKATEBOARD) && !test) {
-            throw new IllegalArgumentException("One of subcategories elements doesn't belong to main category");
+            result.addCause("One of subcategories elements doesn't belong to main category");
         }
         if (mainCategory.equals(MainCategory.LONGBOARD) && test) {
-            throw new IllegalArgumentException("One of subcategories elements doesn't belong to main category");
+            result.addCause("One of subcategories elements doesn't belong to main category");
         }
+        return result;
     }
 
-
-    public static void paginationTest(Integer page, Integer size) throws IllegalArgumentException {
+    public static ValidationResult paginationTest(Integer page, Integer size) {
+        ValidationResult result = new ValidationResult();
         if (page == null || size == null){
-            throw new IllegalArgumentException("Missing page parameter(s)");
+            result.addCause("Missing page parameter(s)");
+            return result;
         }
         if (page < 0 || size <= 0){
-            throw new IllegalArgumentException("Improper pagination parameters");
+            result.addCause("Improper pagination parameters");
         }
+        return result;
     }
 
 }

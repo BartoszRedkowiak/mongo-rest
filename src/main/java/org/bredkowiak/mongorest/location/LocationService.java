@@ -1,6 +1,6 @@
 package org.bredkowiak.mongorest.location;
 
-import com.querydsl.core.types.dsl.BooleanExpression;
+import com.mongodb.MongoWriteException;
 import org.bredkowiak.mongorest.exception.NotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,8 +13,8 @@ public interface LocationService {
     Location findOne(String id) throws NotFoundException;
     List<Location> findLocations(Criteria criteria);
     Page<Location> findLocationPage(Pageable pageable) throws NotFoundException;
-    Location create (Location location);
-    void update (Location location);
+    Location create (Location location) throws MongoWriteException;
+    void update (Location location) throws MongoWriteException ;
     void delete (String id) throws NotFoundException;
 
 }

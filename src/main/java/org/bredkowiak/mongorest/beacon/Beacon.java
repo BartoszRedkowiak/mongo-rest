@@ -17,6 +17,6 @@ public class Beacon {
     private int radius;
     private int interval; // Event re-roll interval (in days) in area;
     private boolean active;
+    private String jobName; //TODO create DTO class to hide this data
 
-//    private int concurrentEvents; to add later on
 }

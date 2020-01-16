@@ -1,6 +1,6 @@
 package org.bredkowiak.mongorest.location;
 
-import com.querydsl.core.types.dsl.BooleanExpression;
+import com.mongodb.MongoWriteException;
 import org.bredkowiak.mongorest.exception.NotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -49,9 +49,7 @@ public class LocationServiceImp implements LocationService {
     }
 
     @Override
-    public Location create(Location location) {
-        //FIXME validate object
-        //FIXME handle save failure
+    public Location create(Location location) throws MongoWriteException {
         Location savedLocation = locationRepository.insert(location);
         return savedLocation;
     }

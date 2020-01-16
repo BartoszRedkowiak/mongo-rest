@@ -1,8 +1,10 @@
 package org.bredkowiak.mongorest.beacon;
 
+import com.mongodb.MongoWriteException;
 import org.bredkowiak.mongorest.exception.NotFoundException;
-import org.bredkowiak.mongorest.location.Location;
-import org.bredkowiak.mongorest.location.LocationRepository;
+import org.bredkowiak.mongorest.scheduler.EventSchedulerService;
+import org.quartz.SchedulerException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -18,9 +20,12 @@ public class BeaconServiceImpl implements BeaconService {
 
     private final String NOT_FOUND_MESSAGE = "No beacon with given id present in database";
     private final BeaconRepository beaconRepository;
+    private final EventSchedulerService schedulerService;
 
-    public BeaconServiceImpl(BeaconRepository beaconRepository) {
+    @Autowired
+    public BeaconServiceImpl(BeaconRepository beaconRepository, EventSchedulerService schedulerService) {
         this.beaconRepository = beaconRepository;
+        this.schedulerService = schedulerService;
     }
 
     @Override
@@ -50,9 +55,12 @@ public class BeaconServiceImpl implements BeaconService {
     }
 
     @Override
-    public Beacon create(Beacon beacon) {
-        //FIXME validate object
-        //FIXME handle save failure
+    public Beacon create(Beacon beacon) throws MongoWriteException, SchedulerException {
+        try {
+            beacon = schedulerService.createNewEventCycle(beacon);
+        } catch (NotFoundException e) {
+            //FIXME find a way to inform client about not activating any event with the beacon
+        }
         Beacon savedBeacon = beaconRepository.insert(beacon);
         return savedBeacon;
     }
