@@ -9,7 +9,6 @@ import org.bredkowiak.mongorest.utils.ValidationResult;
 import org.bredkowiak.mongorest.utils.Validator;
 import org.quartz.SchedulerException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -31,19 +30,18 @@ public class BeaconController {
     }
 
     @GetMapping("/{beaconId}")
-    @ApiOperation(value = "Provides one beacon objects with given id", response = Beacon.class)
+    @ApiOperation(value = "Provides one beacon objects with given id", response = BeaconDTO.class)
     public ResponseEntity getOneBeacon(@PathVariable("beaconId") String id) {
         try{
-            Beacon beacon = beaconService.findOne(id);
-            return ResponseEntity.ok().body(beacon);
+            BeaconDTO beaconDTO = beaconService.findOne(id);
+            return ResponseEntity.ok().body(beaconDTO);
         } catch (NotFoundException e){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ApiCallResponse(false, e.getMessage()));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
 
     @GetMapping("/map")
-    @ApiOperation(value = "Provides list of beacon objects in area specified by query parameters", response = Beacon.class)
+    @ApiOperation(value = "Provides list of beacon objects in area specified by query parameters", response = BeaconDTO.class)
     public ResponseEntity getLocations(@RequestParam(name = "radius") Integer radius,
                                        @RequestParam(name = "lat") Double lat,
                                        @RequestParam(name = "lng") Double lng ) {
@@ -60,12 +58,12 @@ public class BeaconController {
         criteria.where("latitude").lt(lat + radiusConverted).gt(lat - radiusConverted)
                 .and("longitude").lt(lng + radiusConverted).gt(lng - radiusConverted);
 
-        List<Beacon> beacons = beaconService.findLocations(criteria);
-        return ResponseEntity.status(200).body(beacons);
+        List<BeaconDTO> beaconDTOs = beaconService.findLocations(criteria);
+        return ResponseEntity.status(HttpStatus.OK).body(beaconDTOs);
     }
 
     @GetMapping("/list")
-    @ApiOperation(value = "Provides a page of beacon objects specified by query parameters", response = Beacon.class)
+    @ApiOperation(value = "Provides a page of beacon objects specified by query parameters", response = BeaconDTO.class)
     public ResponseEntity getLocationsPage(@RequestParam("page") Integer page,
                                            @RequestParam("size") Integer size
     ) {
@@ -77,50 +75,55 @@ public class BeaconController {
 
         Pageable pageable = PageRequest.of(page, size);
         try {
-            Page<Beacon> resultPage = beaconService.findLocationPage(pageable);
-            return ResponseEntity.status(200).body(resultPage.getContent());
+            List<BeaconDTO> beaconDTOs = beaconService.findLocationPage(pageable);
+            return ResponseEntity.status(HttpStatus.OK).body(beaconDTOs);
         } catch (NotFoundException e){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ApiCallResponse(false, e.getMessage()));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
 
     @PostMapping
-    @ApiOperation(value = "Saves new beacon object in database, returns created object with id", notes = "Rejects objects that contains id", response = Beacon.class)
-    public ResponseEntity addBeacon(@RequestBody Beacon beacon) {
+    @ApiOperation(value = "Saves new beacon object in database and schedules events cycle in beacon area with specified time interval (in days)",
+            notes = "Rejects objects that contains id", response = BeaconDTO.class)
+    public ResponseEntity addBeacon(@RequestBody BeaconDTO beaconDTO) {
 //        Validator.validateNewBeacon(beacon); //TODO validation
 
         try {
-            beacon = beaconService.create(beacon);
+            beaconDTO = beaconService.create(beaconDTO);
         } catch (MongoWriteException | SchedulerException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiCallResponse(false, e.getMessage()));
         }
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(new ApiCallResponse(true, beacon.getId(), "Beacon created successfully"));
+        return ResponseEntity.status(HttpStatus.CREATED).body(beaconDTO);
     }
 
     @PutMapping
-    @ApiOperation(value = "Updates a beacon object with given", notes = "Rejects objects with missing or invalid id")
-    public ResponseEntity updateBeacon(@RequestBody Beacon beacon) throws ObjectValidationException {
+    @ApiOperation(value = "Updates a beacon object with given id", notes = "Rejects objects with missing or invalid id")
+    public ResponseEntity updateBeacon(@RequestBody BeaconDTO beaconDTO) throws ObjectValidationException {
 //        Validator.validateUpdatedBeacon(beacon); //TODO validation
-        beaconService.update(beacon);
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(new ApiCallResponse(true, "Beacon updated successfully"));
+        try {
+            beaconService.update(beaconDTO);
+        } catch (SchedulerException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiCallResponse(false, e.getMessage()));
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiCallResponse(false, e.getMessage()));
+        }
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
 
     @DeleteMapping("/{beaconId}")
-    @ApiOperation(value = "Deletes a beacon object with given id")
-    public ResponseEntity<ApiCallResponse> deleteBeacon(@PathVariable("beaconId") String id) {
+    @ApiOperation(value = "Deletes a beacon object with given id and scheduled event associated with the beacon area")
+    public ResponseEntity deleteBeacon(@PathVariable("beaconId") String id) {
         try {
             beaconService.delete(id);
-            return ResponseEntity.status(HttpStatus.OK)
-                    .body(new ApiCallResponse(true, "Beacon deleted successfully"));
-        } catch (NotFoundException e){
+        } catch (NotFoundException | SchedulerException e){
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new ApiCallResponse(false, e.getMessage()));
         }
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
 

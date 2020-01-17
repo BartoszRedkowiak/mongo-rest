@@ -1,5 +1,6 @@
 package org.bredkowiak.mongorest;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -18,6 +19,10 @@ public class MongoRestApplication {
         SpringApplication.run(MongoRestApplication.class, args);
     }
 
+    @Bean
+    public ModelMapper modelMapper() {
+        return new ModelMapper();
+    }
 }
 
 @Configuration

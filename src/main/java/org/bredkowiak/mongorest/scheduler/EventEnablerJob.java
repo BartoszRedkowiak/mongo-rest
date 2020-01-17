@@ -1,6 +1,5 @@
 package org.bredkowiak.mongorest.scheduler;
 
-import org.bredkowiak.mongorest.beacon.BeaconService;
 import org.bredkowiak.mongorest.exception.NotFoundException;
 import org.bredkowiak.mongorest.location.Location;
 import org.bredkowiak.mongorest.location.LocationService;
@@ -11,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.UUID;
 
@@ -25,10 +26,6 @@ public class EventEnablerJob extends QuartzJobBean {
     @Autowired
     private LocationService locationService;
 
-    @Autowired
-    private BeaconService beaconService;
-
-
     @Override
     protected void executeInternal(JobExecutionContext jobExecutionContext) throws JobExecutionException {
 
@@ -36,6 +33,7 @@ public class EventEnablerJob extends QuartzJobBean {
         JobDataMap jobDataMap = jobExecutionContext.getMergedJobDataMap();
         String locationId = jobDataMap.getString("locationId");
         int interval = jobDataMap.getInt("interval");
+        Date enablerFireTime = jobExecutionContext.getTrigger().getPreviousFireTime();
 
         //Set event to active and update entity;
         Location location = null;
@@ -47,53 +45,62 @@ public class EventEnablerJob extends QuartzJobBean {
         location.setActiveEvent(true);
         locationService.update(location);
 
-        Logger.info("Enabling event on location with id {}", location.getId());
-
         //Schedule disabler job
         JobDetail disablerDetail = buildDisablerDetail(location.getId());
-        Trigger disablerTrigger = buildDisablerTrigger(disablerDetail, interval);
+        Date disablerTriggerDate = getDisablerTriggerDate(enablerFireTime, interval);
+        Trigger disablerTrigger = buildDisablerTrigger(disablerDetail, disablerTriggerDate);
         try {
             scheduler.scheduleJob(disablerDetail, disablerTrigger);
         } catch (SchedulerException e) {
-            e.printStackTrace();
+            e.printStackTrace(); //FIXME
             return;
         }
+        Logger.info("Enabling event on location with id {} . Disabling event at {}. Next event at {}",
+                location.getId(),
+                disablerTrigger.getFinalFireTime(),
+                jobExecutionContext.getTrigger().getNextFireTime());
+    }
 
+    private JobDetail buildDisablerDetail(String locationId) {
+        JobDataMap jobDataMap = new JobDataMap();
+        jobDataMap.put("locationId", locationId);
+
+        return JobBuilder.newJob(EventDisablerJob.class)
+                .withIdentity(UUID.randomUUID().toString(), "beacon-jobs")
+                .withDescription("Disable Event Job")
+                .usingJobData(jobDataMap)
+                .storeDurably()
+                .build();
+    }
+
+    private Trigger buildDisablerTrigger(JobDetail jobDetail, Date disablerTriggerDate) {
+
+        return TriggerBuilder.newTrigger()
+                .forJob(jobDetail)
+                .withIdentity(jobDetail.getKey().getName(), "beacon-triggers")
+                .withDescription("Enable Event Trigger")
+
+                .startAt(disablerTriggerDate)
+                .withSchedule(SimpleScheduleBuilder
+                        .simpleSchedule()
+                        .withMisfireHandlingInstructionFireNow())
+                .build();
 
     }
 
-        private JobDetail buildDisablerDetail(String locationId){
-            JobDataMap jobDataMap = new JobDataMap();
-            jobDataMap.put("locationId", locationId);
+    private Date getDisablerTriggerDate(Date enablerTriggerDate, int interval){
 
-            return JobBuilder.newJob(EventDisablerJob.class)
-                    .withIdentity(UUID.randomUUID().toString(), "beacon-jobs")
-                    .withDescription("Disable Event Job")
-                    .usingJobData(jobDataMap)
-                    .storeDurably()
-                    .build();
-        }
+        LocalDateTime triggerLocalDate = enablerTriggerDate
+                .toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime()
+                .plusDays(interval)
+                .minusMinutes(15);
 
-        private Trigger buildDisablerTrigger(JobDetail jobDetail, int interval){
-            Date date = DateBuilder.nextGivenSecondDate(new Date(), interval - 1);
-
-            return TriggerBuilder.newTrigger()
-                    .forJob(jobDetail)
-                    .withIdentity(jobDetail.getKey().getName(), "beacon-triggers")
-                    .withDescription("Enable Event Trigger")
-                    .startAt(date)
-                    .build();
-        }
-
-
-
-
-
-
-
-
-
-
+        return Date.from(triggerLocalDate
+                .atZone(ZoneId.systemDefault())
+                .toInstant());
+    }
 
 
 }

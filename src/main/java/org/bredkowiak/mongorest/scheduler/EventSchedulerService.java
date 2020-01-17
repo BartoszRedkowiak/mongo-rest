@@ -5,6 +5,7 @@ import org.bredkowiak.mongorest.exception.NotFoundException;
 import org.bredkowiak.mongorest.location.Location;
 import org.bredkowiak.mongorest.location.LocationService;
 import org.quartz.*;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import java.util.UUID;
 @Service
 public class EventSchedulerService {
 
+    private static final org.slf4j.Logger Logger = LoggerFactory.getLogger(EventSchedulerService.class);
     private final Scheduler scheduler;
     private final LocationService locationService;
 
@@ -31,8 +33,16 @@ public class EventSchedulerService {
         Trigger enablerTrigger = buildJobTrigger(enablerDetail, beacon.getInterval(), 0);
         scheduler.scheduleJob(enablerDetail, enablerTrigger);
 
-        beacon.setJobName(enablerDetail.getKey().getName());
+        Logger.info("Created job with name {}", enablerDetail.getKey().getName()); //TODO remove after testing
+
+        beacon.setJobName(enablerDetail.getKey().getName()); //Update beacon with corresponding job
         return beacon;
+    }
+
+    public void disableEventCycle(String jobName) throws SchedulerException {
+        JobKey jobKey = new JobKey(jobName, "beacon-jobs");
+        scheduler.deleteJob(jobKey);
+        Logger.info("Successfully deleted job with name: {}", jobName);
     }
 
     private String drawLocation(Beacon beacon) throws NotFoundException {
@@ -43,7 +53,7 @@ public class EventSchedulerService {
         //Prepare criteria
         Criteria criteria = new Criteria();
         criteria.where("latitude").lt(lat + radiusConverted).gt(lat - radiusConverted)
-                .and("longitude").lt(lng + radiusConverted).gt(lat - radiusConverted);
+                .and("longitude").lt(lng + radiusConverted).gt(lat - radiusConverted); //FIXME add category to criteria
 
         //Lookup for locations in area
         List<Location> locations = locationService.findLocations(criteria);
@@ -77,11 +87,11 @@ public class EventSchedulerService {
                 .forJob(jobDetail)
                 .withIdentity(jobDetail.getKey().getName(), "beacon-triggers")
                 .withDescription("Enable Event Trigger")
-                .startNow()
-                .withSchedule(SimpleScheduleBuilder
-                        .simpleSchedule()
-                        .repeatForever()
-                        .withIntervalInSeconds(interval)) //FIXME
+                .startAt(DateBuilder.tomorrowAt(0,0,0))
+                .withSchedule(CalendarIntervalScheduleBuilder
+                                .calendarIntervalSchedule()
+                                .withIntervalInDays(interval)
+                                .withMisfireHandlingInstructionFireAndProceed())
                 .build();
     }
 

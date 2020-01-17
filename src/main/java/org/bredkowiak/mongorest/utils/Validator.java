@@ -54,6 +54,18 @@ public class Validator {
         return result;
     }
 
+    public static ValidationResult paginationTest(Integer page, Integer size) {
+        ValidationResult result = new ValidationResult();
+        if (page == null || size == null){
+            result.addCause("Missing page parameter(s)");
+            return result;
+        }
+        if (page < 0 || size <= 0){
+            result.addCause("Improper pagination parameters");
+        }
+        return result;
+    }
+
     private static ValidationResult testLocationAttributes(Location location, ValidationResult result) {
         Double lat = location.getLatitude();
         Double lng = location.getLongitude();
@@ -85,18 +97,6 @@ public class Validator {
         }
         if (mainCategory.equals(MainCategory.LONGBOARD) && test) {
             result.addCause("One of subcategories elements doesn't belong to main category");
-        }
-        return result;
-    }
-
-    public static ValidationResult paginationTest(Integer page, Integer size) {
-        ValidationResult result = new ValidationResult();
-        if (page == null || size == null){
-            result.addCause("Missing page parameter(s)");
-            return result;
-        }
-        if (page < 0 || size <= 0){
-            result.addCause("Improper pagination parameters");
         }
         return result;
     }
