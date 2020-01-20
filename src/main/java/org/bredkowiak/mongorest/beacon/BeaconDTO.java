@@ -5,7 +5,7 @@ import io.swagger.annotations.ApiModelProperty;
 import lombok.Getter;
 import lombok.Setter;
 import org.bredkowiak.mongorest.category.MainCategory;
-import org.bredkowiak.mongorest.validation.ValidCategory;
+import org.bredkowiak.mongorest.validation.ValidEnum;
 import org.bredkowiak.mongorest.validation.ValidationCreate;
 import org.bredkowiak.mongorest.validation.ValidationUpdate;
 import org.hibernate.validator.constraints.Range;
@@ -33,7 +33,7 @@ public class BeaconDTO {
     @ApiModelProperty(allowableValues = "range[-180, 180]", required = true)
     private Double longitude;
 
-    @ValidCategory
+    @ValidEnum(regexp = "LONGBOARD|SKATEBOARD", groups = {ValidationCreate.class, ValidationUpdate.class})
     @ApiModelProperty(required = true)
     private MainCategory mainCategory;
 

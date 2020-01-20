@@ -10,6 +10,7 @@ import org.bredkowiak.mongorest.validation.ValidationCreate;
 import org.bredkowiak.mongorest.validation.ValidationUpdate;
 import org.hibernate.validator.constraints.Range;
 
+import javax.validation.constraints.AssertFalse;
 import javax.validation.constraints.Null;
 import javax.validation.constraints.Size;
 
@@ -40,8 +41,8 @@ public class LocationDTO {
     @ValidCategory(groups = {ValidationCreate.class, ValidationUpdate.class})
     private Category categories;
 
-//    @Null(groups = ValidationCreate.class, message = "{validation.activeEvent.assertFalse}")
+    @AssertFalse(groups = ValidationCreate.class, message = "{validation.activeEvent.assertFalse}")
     @ApiModelProperty(notes = "Property of new object has to be null")
-    private boolean activeEvent = false;
+    private boolean activeEvent;
 
 }

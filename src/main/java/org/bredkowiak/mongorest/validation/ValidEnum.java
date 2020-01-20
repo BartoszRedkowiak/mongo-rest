@@ -4,15 +4,13 @@ import javax.validation.Constraint;
 import javax.validation.Payload;
 import java.lang.annotation.*;
 
-@Target({ElementType.FIELD})
+@Target({ElementType.FIELD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
-@Constraint(validatedBy = CategoryValidator.class)
+@Constraint(validatedBy = EnumValidator.class)
 @Documented
-public @interface ValidCategory {
-
-    String message() default "Category is incomplete or contains wrong mainCategory/subCategories combination";
-
+public @interface ValidEnum {
+    String regexp();
+    String message() default "must match \"{regexp}\"";
     Class<?>[] groups() default {};
-
     Class<? extends Payload>[] payload() default {};
 }
