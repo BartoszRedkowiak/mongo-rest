@@ -3,10 +3,10 @@ package org.bredkowiak.mongorest.beacon;
 import com.mongodb.MongoWriteException;
 import io.swagger.annotations.ApiOperation;
 import org.bredkowiak.mongorest.exception.NotFoundException;
-import org.bredkowiak.mongorest.exception.ObjectValidationException;
 import org.bredkowiak.mongorest.utils.ApiCallResponse;
-import org.bredkowiak.mongorest.utils.ValidationResult;
-import org.bredkowiak.mongorest.utils.Validator;
+import org.bredkowiak.mongorest.validation.ValidationCreate;
+import org.bredkowiak.mongorest.validation.ValidationUpdate;
+import org.hibernate.validator.constraints.Range;
 import org.quartz.SchedulerException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -14,12 +14,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.constraints.Min;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/beacons")
+@Validated
 public class BeaconController {
 
     private final BeaconService beaconService;
@@ -42,16 +45,9 @@ public class BeaconController {
 
     @GetMapping("/map")
     @ApiOperation(value = "Provides list of beacon objects in area specified by query parameters", response = BeaconDTO.class)
-    public ResponseEntity getLocations(@RequestParam(name = "radius") Integer radius,
-                                       @RequestParam(name = "lat") Double lat,
-                                       @RequestParam(name = "lng") Double lng ) {
-
-        //Validate required params
-        ValidationResult validationResult = Validator.validateQueryParams(radius, lat, lng);
-        if (!validationResult.isPassed()){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ApiCallResponse(validationResult));
-        }
+    public ResponseEntity getLocations(@RequestParam(name = "radius") @Min(1) Integer radius,
+                                       @RequestParam(name = "lat") @Range(min = -85, max = 85) Double lat,
+                                       @RequestParam(name = "lng") @Range(min = -180, max = 180) Double lng ) {
 
         Criteria criteria = new Criteria();
         Double radiusConverted = 360.0 / 40075 * Double.valueOf(radius); // approx. kilometers to degree conversion
@@ -65,14 +61,7 @@ public class BeaconController {
     @GetMapping("/list")
     @ApiOperation(value = "Provides a page of beacon objects specified by query parameters", response = BeaconDTO.class)
     public ResponseEntity getLocationsPage(@RequestParam("page") Integer page,
-                                           @RequestParam("size") Integer size
-    ) {
-        ValidationResult validationResult = Validator.paginationTest(page, size);
-        if (!validationResult.isPassed()){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ApiCallResponse(validationResult));
-        }
-
+                                           @RequestParam("size") Integer size) {
         Pageable pageable = PageRequest.of(page, size);
         try {
             List<BeaconDTO> beaconDTOs = beaconService.findLocationPage(pageable);
@@ -85,9 +74,7 @@ public class BeaconController {
     @PostMapping
     @ApiOperation(value = "Saves new beacon object in database and schedules events cycle in beacon area with specified time interval (in days)",
             notes = "Rejects objects that contains id", response = BeaconDTO.class)
-    public ResponseEntity addBeacon(@RequestBody BeaconDTO beaconDTO) {
-//        Validator.validateNewBeacon(beacon); //TODO validation
-
+    public ResponseEntity addBeacon(@RequestBody @Validated({ValidationCreate.class}) BeaconDTO beaconDTO) {
         try {
             beaconDTO = beaconService.create(beaconDTO);
         } catch (MongoWriteException | SchedulerException e) {
@@ -99,8 +86,7 @@ public class BeaconController {
 
     @PutMapping
     @ApiOperation(value = "Updates a beacon object with given id", notes = "Rejects objects with missing or invalid id")
-    public ResponseEntity updateBeacon(@RequestBody BeaconDTO beaconDTO) throws ObjectValidationException {
-//        Validator.validateUpdatedBeacon(beacon); //TODO validation
+    public ResponseEntity updateBeacon(@RequestBody @Validated({ValidationUpdate.class}) BeaconDTO beaconDTO) {
         try {
             beaconService.update(beaconDTO);
         } catch (SchedulerException e) {

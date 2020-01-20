@@ -33,12 +33,6 @@ public class ApiCallResponse {
         this.message = message;
     }
 
-    public ApiCallResponse(ValidationResult validationResult) {
-        this.success = validationResult.isPassed();
-        this.timestamp = LocalDateTime.now();
-        this.message = validationResult.presentCauses();
-    }
-
 
 
 

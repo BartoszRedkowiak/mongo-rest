@@ -29,8 +29,8 @@ public class EventSchedulerService {
 
     public Beacon createNewEventCycle(Beacon beacon) throws SchedulerException, NotFoundException {
         String locationId = drawLocation(beacon);
-        JobDetail enablerDetail = buildJobDetails(locationId, beacon.getInterval());
-        Trigger enablerTrigger = buildJobTrigger(enablerDetail, beacon.getInterval(), 0);
+        JobDetail enablerDetail = buildJobDetails(locationId, beacon.getEventDuration());
+        Trigger enablerTrigger = buildJobTrigger(enablerDetail, beacon.getEventDuration(), 0);
         scheduler.scheduleJob(enablerDetail, enablerTrigger);
 
         Logger.info("Created job with name {}", enablerDetail.getKey().getName()); //TODO remove after testing

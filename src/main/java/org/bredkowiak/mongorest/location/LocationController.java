@@ -6,21 +6,27 @@ import org.bredkowiak.mongorest.category.MainCategory;
 import org.bredkowiak.mongorest.category.SubCategory;
 import org.bredkowiak.mongorest.exception.NotFoundException;
 import org.bredkowiak.mongorest.utils.ApiCallResponse;
-import org.bredkowiak.mongorest.utils.ValidationResult;
-import org.bredkowiak.mongorest.utils.Validator;
+import org.bredkowiak.mongorest.validation.ValidationCreate;
+import org.bredkowiak.mongorest.validation.ValidationUpdate;
+import org.hibernate.validator.constraints.Range;
+import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.constraints.Min;
 import java.util.EnumSet;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/locations")
+@Validated
 public class LocationController {
 
     //TODO getRecentLocations
@@ -30,9 +36,20 @@ public class LocationController {
     //TODO fully dynamic queries with pagination using querydsl
 
     private final LocationService locationService;
+    private final ModelMapper modelMapper;
 
-    public LocationController(LocationService locationService) {
+    @Autowired
+    public LocationController(LocationService locationService, ModelMapper modelMapper) {
         this.locationService = locationService;
+        this.modelMapper = modelMapper;
+    }
+
+    private LocationDTO toDTO(Location location){
+        return modelMapper.map(location, LocationDTO.class);
+    }
+
+    private Location fromDTO(LocationDTO locationDTO){
+        return modelMapper.map(locationDTO, Location.class);
     }
 
     @GetMapping("/{locationId}")
@@ -45,25 +62,19 @@ public class LocationController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new ApiCallResponse(false, e.getMessage()));
         }
+
     }
 
     @GetMapping("/map")
     @ApiOperation(value = "Provides list of location objects in area specified by query parameters", notes = "Provide either category or subcategory, both parameters are redundant", response = Location.class)
-    public ResponseEntity getLocations(@RequestParam(name = "radius") Integer radius,
-                                       @RequestParam(name = "lat") Double lat,
-                                       @RequestParam(name = "lng") Double lng,
+    public ResponseEntity getLocations(@RequestParam(name = "radius") @Min(1) Integer radius,
+                                       @RequestParam(name = "lat") @Range(min = -85, max = 85) Double lat,
+                                       @RequestParam(name = "lng") @Range(min = -85, max = 85) Double lng,
                                        @RequestParam(name = "category", required = false) MainCategory catMain,
                                        @RequestParam(name = "subcategory", required = false) EnumSet<SubCategory> catSub ){
-        Criteria criteria = new Criteria();
-
-        //Validate required params
-        ValidationResult validationResult = Validator.validateQueryParams(radius, lat, lng);
-        if (!validationResult.isPassed()){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ApiCallResponse(validationResult));
-        }
 
         //Add location criteria
+        Criteria criteria = new Criteria();
         Double radiusConverted = 360.0 / 40075 * Double.valueOf(radius); // approx. kilometers to degree conversion
         criteria.where("latitude").lt(lat + radiusConverted).gt(lat - radiusConverted)
                 .and("longitude").lt(lng + radiusConverted).gt(lng - radiusConverted);
@@ -85,14 +96,8 @@ public class LocationController {
 
     @GetMapping("/list")
     @ApiOperation(value = "Provides a page of location objects specified by query parameters", response = Location.class)
-    public ResponseEntity getLocationsPage(@RequestParam("page") Integer page,
-                                           @RequestParam("size") Integer size ) {
-        ValidationResult validationResult = Validator.paginationTest(page, size);
-        if (!validationResult.isPassed()){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ApiCallResponse(validationResult));
-        }
-
+    public ResponseEntity getLocationsPage(@RequestParam("page") @Min(0) Integer page,
+                                           @RequestParam("size") @Min(1) Integer size ) {
         Pageable pageable = PageRequest.of(page, size);
         try {
             Page<Location> resultPage = locationService.findLocationPage(pageable);
@@ -104,17 +109,13 @@ public class LocationController {
     }
 
     @PostMapping
-    @ApiOperation(value = "Saves new location object in database, returns created object with id", notes = "Rejects objects that contains id", response = ApiCallResponse.class)
-    public ResponseEntity addLocation(@RequestBody Location location) {
-        ValidationResult validationResult = Validator.validateNewLocation(location);
-        if (!validationResult.isPassed()){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ApiCallResponse(validationResult));
-        }
+    @ApiOperation(value = "Saves new location object in database, returns created object with id", notes = "Rejects objects that contains id", response = LocationDTO.class)
+    public ResponseEntity addLocation(@RequestBody @Validated({ValidationCreate.class}) LocationDTO locationDTO) {
+        Location location = fromDTO(locationDTO);
         try {
-            Location savedLocation = locationService.create(location); //TODO check how to catch creation failue
+            Location savedLocation = locationService.create(location); //TODO check how to catch creation failure
             return ResponseEntity.status(HttpStatus.OK)
-                    .body(new ApiCallResponse(true, savedLocation.getId(), "Location created successfully"));
+                    .body(toDTO(savedLocation));
         } catch (MongoWriteException e){
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiCallResponse(false, e.getMessage()));
@@ -122,16 +123,11 @@ public class LocationController {
     }
 
     @PutMapping
-    @ApiOperation(value = "Updates a location object with given", notes = "Rejects objects with missing or invalid id")
-    public ResponseEntity updateLocation(@RequestBody Location location) {
-        ValidationResult validationResult = Validator.validateUpdatedLocation(location);
-        if (!validationResult.isPassed()){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ApiCallResponse(validationResult));
-        }
-        locationService.update(location);
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(new ApiCallResponse(true, "Location updated successfully"));
+    @ApiOperation(value = "Updates a location object with given", notes = "Rejects objects with missing or invalid id", response = LocationDTO.class)
+    public ResponseEntity updateLocation(@RequestBody @Validated({ValidationUpdate.class}) LocationDTO locationDTO) {
+        Location location = fromDTO(locationDTO);
+        Location updatedLocation = locationService.update(location); //FIXME end-point currently allows changing activeEvent property
+        return ResponseEntity.status(HttpStatus.OK).body(toDTO(updatedLocation));
     }
 
     @DeleteMapping("/{locationId}")

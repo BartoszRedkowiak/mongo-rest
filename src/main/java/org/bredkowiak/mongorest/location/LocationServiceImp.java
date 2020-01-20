@@ -2,6 +2,7 @@ package org.bredkowiak.mongorest.location;
 
 import com.mongodb.MongoWriteException;
 import org.bredkowiak.mongorest.exception.NotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -18,6 +19,7 @@ public class LocationServiceImp implements LocationService {
     private final String NOT_FOUND_MESSAGE = "No location with given id present in database";
     private final LocationRepository locationRepository;
 
+    @Autowired
     public LocationServiceImp(LocationRepository locationRepository) {
         this.locationRepository = locationRepository;
     }
@@ -55,10 +57,9 @@ public class LocationServiceImp implements LocationService {
     }
 
     @Override
-    public void update(Location location) {
-        //FIXME validate object
-        //FIXME handle update failure
-        this.locationRepository.save(location);
+    public Location update(Location location) {
+        Location savedLocation = this.locationRepository.save(location);
+        return savedLocation;
     }
 
     @Override
