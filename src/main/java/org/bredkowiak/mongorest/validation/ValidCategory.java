@@ -4,15 +4,15 @@ import javax.validation.Constraint;
 import javax.validation.Payload;
 import java.lang.annotation.*;
 
-@Target({ElementType.FIELD, ElementType.PARAMETER})
+@Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
-@Constraint(validatedBy = MainCategoryValidator.class)
+@Constraint(validatedBy = CategoryValidator.class)
 @Documented
-public @interface MainCat {
+public @interface ValidCategory {
 
     //TODO finish or delete
 
-    String message() default "Provided main category is not allowed";
+    String message() default "Category is incomplete or contains wrong mainCategory/subCategories combination";
 
     Class<?>[] groups() default {};
 

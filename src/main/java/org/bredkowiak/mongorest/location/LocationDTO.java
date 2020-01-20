@@ -5,6 +5,7 @@ import io.swagger.annotations.ApiModelProperty;
 import lombok.Getter;
 import lombok.Setter;
 import org.bredkowiak.mongorest.category.Category;
+import org.bredkowiak.mongorest.validation.ValidCategory;
 import org.bredkowiak.mongorest.validation.ValidationCreate;
 import org.bredkowiak.mongorest.validation.ValidationUpdate;
 import org.hibernate.validator.constraints.Range;
@@ -36,9 +37,10 @@ public class LocationDTO {
             groups = {ValidationCreate.class, ValidationUpdate.class})
     private String name;
 
+    @ValidCategory(groups = {ValidationCreate.class, ValidationUpdate.class})
     private Category categories;
 
-    @Null(groups = ValidationCreate.class, message = "{validation.activeEvent.assertFalse}")
+//    @Null(groups = ValidationCreate.class, message = "{validation.activeEvent.assertFalse}")
     @ApiModelProperty(notes = "Property of new object has to be null")
     private boolean activeEvent = false;
 
