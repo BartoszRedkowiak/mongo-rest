@@ -4,8 +4,11 @@ import io.swagger.annotations.ApiModel;
 import lombok.Getter;
 import lombok.Setter;
 import org.bredkowiak.mongorest.category.Category;
+import org.bredkowiak.mongorest.like.Like;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.util.Set;
 
 @Document(collection = "Locations")
 @Getter
@@ -20,5 +23,6 @@ public class Location {
     private String name;
     private Category categories;
     private boolean activeEvent = false;
+    private Set<Like> likes;
 
 }
