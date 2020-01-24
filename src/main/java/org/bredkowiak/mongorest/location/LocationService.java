@@ -11,10 +11,9 @@ import java.util.List;
 public interface LocationService {
 
     Location findOne(String id) throws NotFoundException;
+    Location create(Location location) throws MongoWriteException;
+    Location update(Location location);
+    void delete(String id) throws NotFoundException;
     List<Location> findLocations(Criteria criteria);
     Page<Location> findLocationPage(Pageable pageable) throws NotFoundException;
-    Location create (Location locationDTO) throws MongoWriteException;
-    Location update (Location location) throws MongoWriteException ;
-    void delete (String id) throws NotFoundException;
-
 }

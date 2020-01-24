@@ -1,5 +1,8 @@
 package org.bredkowiak.mongorest.validation;
 
+import com.mongodb.MongoWriteException;
+import org.bredkowiak.mongorest.exception.NotFoundException;
+import org.quartz.SchedulerException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -45,5 +48,23 @@ public class CustomGlobalExceptionHandler extends ResponseEntityExceptionHandler
     public void constraintViolationException(HttpServletResponse response) throws IOException {
         response.sendError(HttpStatus.BAD_REQUEST.value());
     }
+
+    @ExceptionHandler(NotFoundException.class)
+    public void notFoundException(HttpServletResponse response) throws IOException {
+        response.sendError(HttpStatus.NOT_FOUND.value());
+    }
+
+    @ExceptionHandler(MongoWriteException.class)
+    public void mongoWriteException(HttpServletResponse response) throws IOException {
+        response.sendError(HttpStatus.INTERNAL_SERVER_ERROR.value());
+    }
+
+    @ExceptionHandler(SchedulerException.class)
+    public void schedulerException(HttpServletResponse response) throws IOException {
+        response.sendError(HttpStatus.INTERNAL_SERVER_ERROR.value());
+    }
+
+
+
 
 }
