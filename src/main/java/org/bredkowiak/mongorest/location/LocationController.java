@@ -118,8 +118,7 @@ public class LocationController {
     @PutMapping
     @ApiOperation(value = "Updates a location object with given", notes = "Rejects objects with missing or invalid id", response = LocationDTO.class)
     public ResponseEntity<LocationDTO> updateLocation(@RequestBody @Validated({ValidationUpdate.class}) LocationDTO locationDTO) {
-        Location location = fromDTO(locationDTO);
-        Location updatedLocation = locationService.update(location); //FIXME end-point currently allows changing activeEvent property
+        Location updatedLocation = locationService.update(fromDTO(locationDTO)); //FIXME end-point currently allows changing activeEvent property
         return ResponseEntity.status(HttpStatus.OK).body(toDTO(updatedLocation));
     }
 

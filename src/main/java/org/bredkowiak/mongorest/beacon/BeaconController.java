@@ -44,7 +44,7 @@ public class BeaconController {
 
     @GetMapping("/map")
     @ApiOperation(value = "Provides list of beacon objects in area specified by query parameters", response = BeaconDTO.class)
-    public ResponseEntity<List<BeaconDTO>> getLocations(@RequestParam(name = "radius") @Min(1) Integer radius,
+    public ResponseEntity<List<BeaconDTO>> getBeacons(@RequestParam(name = "radius") @Min(1) Integer radius,
                                                         @RequestParam(name = "lat") @Range(min = -85, max = 85) Double lat,
                                                         @RequestParam(name = "lng") @Range(min = -180, max = 180) Double lng) {
 
@@ -59,7 +59,7 @@ public class BeaconController {
 
     @GetMapping("/list")
     @ApiOperation(value = "Provides a page of beacon objects specified by query parameters", response = BeaconDTO.class)
-    public ResponseEntity<List<BeaconDTO>> getLocationsPage(@RequestParam("page") Integer page,
+    public ResponseEntity<List<BeaconDTO>> getBeaconsPage(@RequestParam("page") Integer page,
                                                             @RequestParam("size") Integer size) throws NotFoundException {
         Pageable pageable = PageRequest.of(page, size);
         Page<Beacon> beacons = beaconService.findLocationPage(pageable);

@@ -3,7 +3,6 @@ package org.bredkowiak.mongorest.beacon;
 import com.mongodb.MongoWriteException;
 import org.bredkowiak.mongorest.exception.NotFoundException;
 import org.bredkowiak.mongorest.scheduler.EventSchedulerService;
-import org.modelmapper.ModelMapper;
 import org.quartz.SchedulerException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -22,13 +21,11 @@ public class BeaconServiceImp implements BeaconService {
     private final String NOT_FOUND_MESSAGE = "No beacon with given id present in database";
     private final BeaconRepository beaconRepository;
     private final EventSchedulerService schedulerService;
-    private final ModelMapper modelMapper;
 
     @Autowired
-    public BeaconServiceImp(BeaconRepository beaconRepository, EventSchedulerService schedulerService, ModelMapper modelMapper) {
+    public BeaconServiceImp(BeaconRepository beaconRepository, EventSchedulerService schedulerService) {
         this.beaconRepository = beaconRepository;
         this.schedulerService = schedulerService;
-        this.modelMapper = modelMapper;
     }
 
     @Override
